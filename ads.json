@@ -1,0 +1,13 @@
+[
+  {"name": "Ad1", "creative": "Creative1", "position": "top"},
+  {"name": "Ad2", "creative": "Creative2", "position": "bottom"},
+  {"name": "Ad3", "creative": "Creative3", "position": "top"},
+  {"name": "Ad4", "creative": "Creative4", "position": "left"},
+  {"name": "Ad5", "creative": "Creative5", "position": "left"},
+  {"name": "Ad6", "creative": "Creative6", "position": "foo"},
+  {"name": "Ad7", "creative": "Creative7", "position": "foo"},
+  {"name": "Ad8", "creative": "Creative8", "position": "foo"},
+  {"name": "Ad9", "creative": "Creative9", "position": "foo"},
+  {"name": "Ad10", "creative": "Creative10", "position": "foo"},
+  {"name": "Ad11", "creative": "Creative11", "position": "foo"}
+]
