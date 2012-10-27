@@ -21,10 +21,6 @@ object JsonProtocol extends DefaultJsonProtocol {
 
 case class AdIndex(pos2ad: Map[String, Seq[Ad]])
 
-object AdIndex {
-  val empty = AdIndex(Map[String, Seq[Ad]]())
-}
-
 case class AdServedEvent(request: AdRequest, response: AdResponse, timestamp: Long)
 
 case class NewIndexEvent(index: AdIndex)
@@ -35,7 +31,9 @@ case object CheckIndexFile
 
 case object GetStats
 
-// Monitors file system for changes in the index file
+// Monitors file system for changes in the index file. When a change
+// is detected, loads ads from the file, creates a map of
+// position->Seq[Ad] and sends a notification event to eventbus.
 class IndexLoader(indexFile: File) extends Actor with ActorLogging {
   var lastUpdate: Long = 0 // last load timestamp
 
@@ -62,9 +60,11 @@ class IndexLoader(indexFile: File) extends Actor with ActorLogging {
   }
 }
 
-// Keeps counts for every ad served.
+// Keeps counts for every ad served. Listening on AdServedEvent, this
+// actor maintains a map of counters. The stats can be retrieved by
+// sending GetStats.
 class StatsCollector extends Actor with ActorLogging {
-  // mutable map of ad name -> count
+  // ad.name -> count
   var stats = Map[String, Int]() withDefaultValue (0)
 
   context.system.eventStream.subscribe(self, classOf[AdServedEvent])
@@ -79,7 +79,8 @@ class StatsCollector extends Actor with ActorLogging {
   }
 }
 
-// Logs every ad served.
+// Logs every ad served in a text file. All ads served in one response
+// are logged as one line.
 class AdLogger(val logFile: File) extends Actor with ActorLogging {
   var writer: PrintWriter = _
 
@@ -114,7 +115,7 @@ class AdLogger(val logFile: File) extends Actor with ActorLogging {
 // actor to keep internal caches etc, and not worry about flushing
 // them.
 class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
-  var index = AdIndex.empty
+  var index: AdIndex = _
 
   // picks a random Ad from a collection
   def randomAd(coll: Seq[Ad]): Ad = coll(scala.util.Random.nextInt(coll.size))
@@ -155,9 +156,10 @@ class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
   }
 }
 
-// Creates all other actors, also manages index updates
+// Creates all other actors, also manages index updates.
+// TODO: consider splitting into index manager and supervisor
 class Root extends Actor with ActorLogging {
-  var index = AdIndex.empty
+  var index: AdIndex = _
 
   context.system.eventStream.subscribe(self, classOf[NewIndexEvent])
 
@@ -172,9 +174,9 @@ class Root extends Actor with ActorLogging {
 
   val adLogger = context.actorOf(Props { new AdLogger(new File("ads.log")) }, name = "adLogger")
 
-  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 second) {
     case _: ActorKilledException => Restart
-    case e: Exception => Restart
+    case _: Exception => Restart
     case _ => Escalate
   }
 
@@ -184,9 +186,11 @@ class Root extends Actor with ActorLogging {
       this.index = newIndex
       adFinder ! Kill // restart finder(s)
     }
+
     case IndexRequest => {
       log.info("got index request")
       sender ! index
     }
   }
+
 }
