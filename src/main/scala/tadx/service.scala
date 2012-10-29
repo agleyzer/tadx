@@ -26,8 +26,11 @@ trait Core {
   lazy val statsCollector = actorSystem.actorFor("/user/root/statsCollector")
 }
 
+
 trait Api extends Directives { this: Core =>
   import JsonProtocol._
+
+  val separator = ",".r                 // regex
 
   // format: OFF -- stop autoformatting here - Scalariform chokes on Spray DSL :(
   private val route = {
@@ -37,7 +40,7 @@ trait Api extends Directives { this: Core =>
       } ~
       path("ads") {
         parameter('positions) { positions =>
-          val req = AdRequest(positions.split(","))
+          val req = AdRequest(separator.split(positions))
           respondWithMediaType(`application/json`) {
             completeWith {
               (adFinder ? req).mapTo[AdResponse].map { resp =>

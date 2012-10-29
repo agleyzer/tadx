@@ -115,7 +115,7 @@ class AdLogger(val logFile: File) extends Actor with ActorLogging {
 // actor to keep internal caches etc, and not worry about flushing
 // them.
 class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
-  var index: AdIndex = _
+  var index: AdIndex = AdIndex(Map.empty)
 
   // picks a random Ad from a collection
   def randomAd(coll: Seq[Ad]): Ad = coll(scala.util.Random.nextInt(coll.size))
@@ -159,7 +159,7 @@ class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
 // Creates all other actors, also manages index updates.
 // TODO: consider splitting into index manager and supervisor
 class Root extends Actor with ActorLogging {
-  var index: AdIndex = _
+  var index: AdIndex = AdIndex(Map.empty)
 
   context.system.eventStream.subscribe(self, classOf[NewIndexEvent])
 
