@@ -1,100 +1,62 @@
 package tadx
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import akka.util.duration._
-import cc.spray.{Directives, HttpService, SprayCanRootService}
-import cc.spray.can.server.HttpServer
-import cc.spray.directives.SprayRoute1
-import cc.spray.http.HttpHeaders._
-import cc.spray.http.MediaTypes._
-import cc.spray.http.StatusCodes._
-import cc.spray.io.IoWorker
-import cc.spray.io.pipelines.MessageHandlerDispatch
-import cc.spray.json._
+import language.postfixOps
+import scala.concurrent.duration._
+import spray.http.{HttpRequest, HttpResponse, HttpBody}
+import spray.http.HttpMethods._
+import spray.http.ContentType._
+import spray.http.StatusCodes._
+import spray.can.server.SprayCanHttpServerApp
+import spray.json._
 
-// All code needed to initialize web service and the app
-
-trait Core {
-  implicit val timeout = Timeout(5 seconds)
-
-  def actorSystem: ActorSystem
-
-  val root = actorSystem.actorOf(Props[Root], name = "root")
-
-  lazy val adFinder = actorSystem.actorFor("/user/root/adFinder")
-
-  lazy val statsCollector = actorSystem.actorFor("/user/root/statsCollector")
-}
-
-
-trait Api extends Directives { this: Core =>
+class RequestHandler extends Actor {
   import Json._
+  import context.dispatcher
 
-  val separator = ",".r                 // regex
+  private implicit val timeout = Timeout(5 seconds)
 
-  // format: OFF -- stop autoformatting here - Scalariform chokes on Spray DSL :(
-  private val route = {
-    pathPrefix("tadx") {
-      path("") {
-        get { _.complete("TADX!") }
-      } ~
-      path("ads") {
-        parameter('positions) { positions =>
-          val req = AdRequest(separator.split(positions))
-          respondWithMediaType(`application/json`) {
-            completeWith {
-              (adFinder ? req).mapTo[AdResponse].map { resp =>
-                // position->ad becomes position->creative
-                val p2c = resp.ads.map { case (pos, ad) => pos -> ad.creative }
-                p2c.toJson.compactPrint
-              }
-            }
-          }
-        }
-      } ~
-      path("stats") {
-        respondWithMediaType(`application/json`) {
-          completeWith {
-            (statsCollector ? StatsCollector.GetStats).mapTo[Map[String, Int]].map { stats =>
-              stats.toJson.compactPrint
-            }
-          }
-        }
-      }
+  private val separator = ",".r                 // regex
+
+  private lazy val adFinder = context.system.actorFor("/user/root/adFinder")
+  private lazy val statsCollector = context.system.actorFor("/user/root/statsCollector")
+
+  private def jsonResponse(json: JsValue) = HttpResponse (entity = HttpBody(`application/json`, json.compactPrint))
+
+  private def serveAds(request: HttpRequest, sender: ActorRef) = {
+    val positions = request.queryParams.getOrElse("positions", "")
+    val adreq = AdRequest(separator.split(positions))
+
+    (adFinder ? adreq).mapTo[AdResponse].map { resp =>
+      // position->ad becomes position->creative
+      val p2c = resp.ads.map { case (pos, ad) => pos -> ad.creative }
+      sender ! jsonResponse(p2c.toJson)
     }
   }
-  // format: ON
 
-  private val httpService = actorSystem.actorOf(
-    props = Props(new HttpService(route)),
-    name = "http-service")
+  private def serveStats(sender: ActorRef) = {
+    (statsCollector ? StatsCollector.GetStats).mapTo[Map[String, Int]].map { stats =>
+      sender ! jsonResponse(stats.toJson)
+    }
+  }
 
-  val rootService = actorSystem.actorOf(
-    props = Props(new SprayCanRootService(httpService)),
-    name = "root-service")
-}
+  def receive = {
+    case r: HttpRequest =>
+      val pr = r.parseAll
 
-trait Web { this: Api with Core =>
-  val serverPort = 8080
-
-  val ioWorker = new IoWorker(actorSystem).start()
-
-  val sprayCanServer = actorSystem.actorOf(
-    Props(new HttpServer(ioWorker, MessageHandlerDispatch.SingletonHandler(rootService))),
-    name = "http-server")
-
-  sprayCanServer ! HttpServer.Bind("0.0.0.0", serverPort)
-
-  actorSystem.registerOnTermination {
-    ioWorker.stop()
+      pr.path match {
+        case "/tadx/ads" => serveAds(pr, sender)
+        case "/tadx/stats" => serveStats(sender)
+        case _ => sender ! HttpResponse(status = NotFound, entity = pr.path)
+      }
   }
 }
 
-class Application(val actorSystem: ActorSystem) extends Core with Api with Web
 
-object Tadx extends App {
-  val actorSystem = ActorSystem("tadx")
-  new Application(actorSystem)
+object Tadx extends App with SprayCanHttpServerApp {
+  val root = system.actorOf(Props[Root], name = "root")
+  val handler = system.actorOf(Props[RequestHandler])
+  newHttpServer(handler) ! Bind(interface = "localhost", port = 8080)
 }

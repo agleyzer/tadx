@@ -13,7 +13,7 @@ class StatsCollector extends Actor with ActorLogging {
   import StatsCollector._
 
   // ad.name -> count
-  var stats = Map[String, Int]() withDefaultValue (0)
+  private var stats = Map[String, Int]() withDefaultValue(0)
 
   context.system.eventStream.subscribe(self, classOf[AdServedEvent])
 

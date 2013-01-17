@@ -1,0 +1,9 @@
+project/boot
+project/plugins/project
+target
+lib_managed
+src_managed
+.ensime_lucene
+.ensime
+ads.log
+flycheck-.ensime

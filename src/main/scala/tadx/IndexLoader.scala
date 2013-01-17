@@ -1,9 +1,10 @@
 package tadx
 
 import akka.actor._
-import akka.util.duration._
 import java.io.File
+import scala.concurrent.duration._
 import scala.io.Source
+import scala.language.postfixOps
 
 object IndexLoader {
   case object CheckIndexFile
@@ -14,13 +15,14 @@ object IndexLoader {
 // position->Seq[Ad] and sends a notification event to eventbus.
 class IndexLoader(indexFile: File) extends Actor with ActorLogging {
   import IndexLoader._
+  import context.dispatcher
 
-  var lastUpdate: Long = 0 // last load timestamp
+  private var lastUpdate: Long = 0 // last load timestamp
 
   context.system.scheduler.schedule(0 seconds, 1 second, self, CheckIndexFile)
 
   // loads indexFile as JSON
-  def loadAdsFromFile(): Seq[Ad] = {
+  private def loadAdsFromFile(): Seq[Ad] = {
     val s = Source.fromFile(indexFile).mkString
     Json.parseAds(s)
   }

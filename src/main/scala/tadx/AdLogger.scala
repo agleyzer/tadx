@@ -6,7 +6,7 @@ import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 // Logs every ad served in a text file. All ads served in one response
 // are logged as one line.
 class AdLogger(val logFile: File) extends Actor with ActorLogging {
-  var writer: PrintWriter = _
+  private var writer: PrintWriter = _ // FIXME null?
 
   context.system.eventStream.subscribe(self, classOf[AdServedEvent])
 
@@ -19,7 +19,7 @@ class AdLogger(val logFile: File) extends Actor with ActorLogging {
   }
 
   // FORMAT: timestamp: pos|ad, pos|ad, pos|ad...
-  def logString(e: AdServedEvent) = {
+  private def mkString(e: AdServedEvent) = {
     // for each position in request, see if it's filled in response
     e.timestamp + ": " + e.request.positions.map { position =>
       val ad = e.response.ads.get(position) // Option[Ad]
@@ -29,6 +29,6 @@ class AdLogger(val logFile: File) extends Actor with ActorLogging {
   }
 
   def receive = {
-    case e: AdServedEvent => writer.println(logString(e))
+    case e: AdServedEvent => writer.println(mkString(e))
   }
 }

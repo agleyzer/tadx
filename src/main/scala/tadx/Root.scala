@@ -3,7 +3,8 @@ package tadx
 import akka.actor._
 import akka.actor.SupervisorStrategy.{Escalate, Restart}
 import akka.routing.RoundRobinRouter
-import akka.util.duration._
+import language.postfixOps
+import scala.concurrent.duration._
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -19,7 +20,7 @@ object Root {
 class Root extends Actor with ActorLogging {
   import Root._
 
-  var index: AdIndex = AdIndex.empty // initial index
+  private var index: AdIndex = AdIndex.empty // initial index
 
   context.system.eventStream.subscribe(self, classOf[NewIndexEvent])
 

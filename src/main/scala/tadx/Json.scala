@@ -1,6 +1,6 @@
 package tadx
 
-import cc.spray.json._
+import spray.json._
 
 object Json extends DefaultJsonProtocol {
   implicit val adFormat = jsonFormat3(Ad)

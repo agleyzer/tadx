@@ -13,16 +13,16 @@ import scala.util.Random
 class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
   import Root._
 
-  var index: AdIndex = AdIndex(Map.empty)
+  private var index: AdIndex = AdIndex.empty
 
   // picks a random Ad from a collection
-  def randomAd(coll: Seq[Ad]): Ad = coll(scala.util.Random.nextInt(coll.size))
+  private def pickOne(coll: Seq[Ad]): Ad = coll(scala.util.Random.nextInt(coll.size))
 
   // given a set of positions returns a Map position -> creative
-  def fillPositions(positions: Seq[String]): Map[String, Ad] = {
+  private def fillPositions(positions: Seq[String]): Map[String, Ad] = {
     positions.map { pos =>
       index.pos2ad.get(pos).map { ads =>
-        val ad = randomAd(ads)
+        val ad = pickOne(ads)
         pos -> ad
       }
     }.flatten.toMap
@@ -38,8 +38,7 @@ class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
     case request: AdRequest => {
       val response = AdResponse(fillPositions(request.positions))
       sender ! response
-      context.system.eventStream.publish(
-        AdServedEvent(request, response, System.currentTimeMillis))
+      context.system.eventStream.publish(AdServedEvent(request, response))
     }
   }
 

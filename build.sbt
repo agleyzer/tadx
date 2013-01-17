@@ -1,23 +1,27 @@
 name := "tadx"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.0"
 
 scalacOptions ++= Seq("-optimize",
                       "-deprecation",
                       "-encoding", "utf8",
+                      "-feature",
                       "-unchecked")
 
 retrieveManaged := true
 
-libraryDependencies ++= Seq("com.typesafe.akka" % "akka-actor" % "2.0.2",
-                            "com.typesafe.akka" % "akka-actor" % "2.0.2",
-                            "com.typesafe.akka" % "akka-agent" % "2.0.2",
-                            "org.scala-tools" %% "scala-stm" % "0.5",
-                            "cc.spray" % "spray-can" % "1.0-M2",
-                            "cc.spray" % "spray-server" % "1.0-M2",
-                            "cc.spray" %% "spray-json" % "1.1.1",
+resolvers += "Spray Repository" at "http://repo.spray.io"
+
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+
+libraryDependencies ++= Seq("com.typesafe.akka" %% "akka-actor" % "2.1.0",
+                            "com.typesafe.akka" %% "akka-actor" % "2.1.0",
+                            "com.typesafe.akka" %% "akka-agent" % "2.1.0",
+                            "io.spray" % "spray-can" % "1.1-M7",
+                            "io.spray" % "spray-routing" % "1.1-M7",
+                            "io.spray" %% "spray-json" % "1.2.3",
                             "com.typesafe.akka" % "akka-testkit" % "2.0.2" % "test",
-                            "org.specs2" %% "specs2" % "1.9" % "test",
+                            "org.specs2" %% "specs2" % "1.13" % "test",
                             "junit" % "junit" % "4.5" % "test")
 
 seq(Revolver.settings: _*)
