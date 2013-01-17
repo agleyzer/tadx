@@ -4,6 +4,7 @@ target/
 lib_managed/
 src_managed/
 test-output/
-.ensime_lucene
-.ensime
-ads.log
+/.ensime_lucene
+/.ensime
+/ads.log
+/flycheck-.ensime

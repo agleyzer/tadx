@@ -14,6 +14,8 @@ import cc.spray.io.IoWorker
 import cc.spray.io.pipelines.MessageHandlerDispatch
 import cc.spray.json._
 
+// All code needed to initialize web service and the app
+
 trait Core {
   implicit val timeout = Timeout(5 seconds)
 
@@ -28,7 +30,7 @@ trait Core {
 
 
 trait Api extends Directives { this: Core =>
-  import JsonProtocol._
+  import Json._
 
   val separator = ",".r                 // regex
 
@@ -55,7 +57,7 @@ trait Api extends Directives { this: Core =>
       path("stats") {
         respondWithMediaType(`application/json`) {
           completeWith {
-            (statsCollector ? GetStats).mapTo[Map[String, Int]].map { stats =>
+            (statsCollector ? StatsCollector.GetStats).mapTo[Map[String, Int]].map { stats =>
               stats.toJson.compactPrint
             }
           }
