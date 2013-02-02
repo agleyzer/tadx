@@ -11,14 +11,14 @@ import java.io.FileWriter
 import java.io.PrintWriter
 import scala.util.Random
 
-object Root {
+object Manager {
   case object IndexRequest
 }
 
 // Creates all other actors, also manages index updates.
 // TODO: consider splitting into index manager and supervisor
-class Root extends Actor with ActorLogging {
-  import Root._
+class Manager extends Actor with ActorLogging {
+  import Manager._
 
   private var index: AdIndex = AdIndex.empty // initial index
 

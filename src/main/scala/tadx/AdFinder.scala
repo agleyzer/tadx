@@ -10,16 +10,16 @@ import scala.util.Random
 // restarted from scratch when index changes. This design allows this
 // actor to keep internal caches etc, and not worry about flushing
 // them.
-class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
-  import Root._
+class AdFinder(val manager: ActorRef) extends Actor with ActorLogging {
+  import Manager._
 
-  private var index: AdIndex = AdIndex.empty
+  private[tadx] var index: AdIndex = AdIndex.empty
 
-  // picks a random Ad from a collection
-  private def pickOne(coll: Seq[Ad]): Ad = coll(scala.util.Random.nextInt(coll.size))
+  // picks a random T from a collection
+  private[tadx] def pickOne(coll: Seq[Ad]) = coll(Random.nextInt(coll.size))
 
   // given a set of positions returns a Map position -> creative
-  private def fillPositions(positions: Seq[String]): Map[String, Ad] = {
+  private[tadx] def fillPositions(positions: Seq[String]): Map[String, Ad] = {
     positions.map { pos =>
       index.pos2ad.get(pos).map { ads =>
         val ad = pickOne(ads)
@@ -30,7 +30,7 @@ class AdFinder(val indexManager: ActorRef) extends Actor with ActorLogging {
 
   override def preStart() = {
     log.info("asking manager for index")
-    indexManager ! IndexRequest
+    manager ! IndexRequest
   }
 
   // this will become our "working" receive

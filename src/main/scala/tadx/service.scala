@@ -1,17 +1,18 @@
 package tadx
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import language.postfixOps
 import scala.concurrent.duration._
-import spray.http.{HttpRequest, HttpResponse, HttpBody}
-import spray.http.HttpMethods._
+import scala.language.postfixOps
+import spray.can.server.SprayCanHttpServerApp
+import spray.http.{ HttpBody, HttpRequest, HttpResponse }
 import spray.http.ContentType._
 import spray.http.StatusCodes._
-import spray.can.server.SprayCanHttpServerApp
 import spray.json._
 
+
+// Starts business actors, handles http requests.
 class RequestHandler extends Actor {
   import Json._
   import context.dispatcher
@@ -54,9 +55,9 @@ class RequestHandler extends Actor {
   }
 }
 
-
+// Driver for the app.
 object Tadx extends App with SprayCanHttpServerApp {
-  val root = system.actorOf(Props[Root], name = "root")
+  val root = system.actorOf(Props[Manager], name = "root")
   val handler = system.actorOf(Props[RequestHandler])
   newHttpServer(handler) ! Bind(interface = "localhost", port = 8080)
 }
