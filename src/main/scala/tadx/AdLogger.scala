@@ -10,11 +10,11 @@ class AdLogger(val logFile: File) extends Actor with ActorLogging {
 
   context.system.eventStream.subscribe(self, classOf[AdServedEvent])
 
-  override def preStart() = {
+  override def preStart() {
     writer = new PrintWriter(new BufferedWriter(new FileWriter(logFile, true)), true)
   }
 
-  override def postStop() = {
+  override def postStop() {
     writer.close()
   }
 

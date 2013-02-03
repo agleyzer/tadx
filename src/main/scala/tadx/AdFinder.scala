@@ -1,8 +1,6 @@
 package tadx
 
 import akka.actor._
-import scala.util.Random
-
 
 // Given AdRequest resturns AdResponse. When initialized, will request
 // index update, upon receiving the index it becomes a "realFinder"
@@ -10,25 +8,14 @@ import scala.util.Random
 // restarted from scratch when index changes. This design allows this
 // actor to keep internal caches etc, and not worry about flushing
 // them.
-class AdFinder(val manager: ActorRef) extends Actor with ActorLogging {
+class AdFinder(val manager: ActorRef) extends Actor
+  with ActorLogging with AdFinderFunctions {
+
   import Manager._
 
-  private[tadx] var index: AdIndex = AdIndex.empty
+  var index: AdIndex = AdIndex.empty
 
-  // picks a random T from a collection
-  private[tadx] def pickOne(coll: Seq[Ad]) = coll(Random.nextInt(coll.size))
-
-  // given a set of positions returns a Map position -> creative
-  private[tadx] def fillPositions(positions: Seq[String]): Map[String, Ad] = {
-    positions.map { pos =>
-      index.pos2ad.get(pos).map { ads =>
-        val ad = pickOne(ads)
-        pos -> ad
-      }
-    }.flatten.toMap
-  }
-
-  override def preStart() = {
+  override def preStart() {
     log.info("asking manager for index")
     manager ! IndexRequest
   }
