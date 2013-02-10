@@ -9,7 +9,8 @@ import akka.actor._
 // actor to keep internal caches etc, and not worry about flushing
 // them.
 class AdFinder(val manager: ActorRef) extends Actor
-  with ActorLogging with AdFinderFunctions {
+    with ActorLogging
+    with AdFinderLogic {
 
   import Manager._
 

@@ -6,25 +6,31 @@ import akka.testkit.TestActorRef
 import akka.testkit.TestKit
 import org.specs2.mutable.Specification
 
-class AdFinderSpec extends TestKit(ActorSystem()) with ImplicitSender with Specification {
+class AdFinderSpec extends TestKit(ActorSystem("test"))
+    with ImplicitSender
+    with Specification {
+
+  import Manager._
+
   val ad1 = Ad("ad1", "position1", "creative1")
 
   val adIndex = AdIndex(Map("foo" -> Seq(ad1)))
 
-  val indexManager = TestActorRef(new Actor {
-    def receive = {
-      case Manager.IndexRequest => sender ! adIndex
-    }
-  })
-
-  val adFinder = TestActorRef(new AdFinder(indexManager))
-
   "An AdFinder" should {
     "respond to an ad request" in {
-       adFinder ! AdRequest(Seq("foo", "bar"))
-       val expectedResponse = AdResponse(Map("foo" -> ad1))
-       expectMsg(expectedResponse)
-       done
+      val adFinder = system.actorOf(Props { new AdFinder(testActor) })
+
+      expectMsg(IndexRequest)
+
+      lastSender ! adIndex
+
+      adFinder ! AdRequest(Seq("foo", "bar"))
+
+      expectMsg(AdResponse(Map("foo" -> ad1)))
+
+      system.stop(adFinder)
+
+      done
     }
   }
 }
